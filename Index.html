@@ -1,32 +1,184 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ascultă Cuvântul lui Dumnezeu</title>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
-  <link rel="stylesheet" href="css/styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="title"></title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/5.0.0/css/flag-icon.min.css">
+    <style>
+        body { background-color: #D8DBE2; }
+        #controlli-audio { display: flex; justify-content: center; align-items: center; margin-top: 20px; }
+        .gruppo-bottoni { display: flex; justify-content: center; }
+        .lingua { position: absolute; top: 10px; right: 10px; cursor: pointer; font-size: 30px; }
+        #orario { text-align: center; font-size: 18px; margin-top: 20px; line-height: 1.5; }
+        #orario div { margin-top: 20px; }
+        #orario p { margin: 0; font-size: 16px; }
+        #bottone-servizio-inattivo { pointer-events: none; opacity: 0.5; }
+        #bottone-ascolta, #bottone-pausa { display: none; }
+        .flag-icon { font-size: 40px; }
+    </style>
 </head>
 <body>
+    <div class="container text-center mt-5">
+        <h1 id="titolo"></h1>
+        <h4 id="sottotitolo"></h4>
+        <div class="mt-4" id="orario">
+            <p id="programa"></p>
+            <p id="lunedi"></p> 
+            <p id="mercoledi"></p>
+            <p id="domenica"></p>
+        </div>
+        <audio id="audio" preload="auto"></audio>
+        <div id="controlli-audio">
+            <div class="gruppo-bottoni" role="group">
+                <button id="bottone-ascolta" class="btn btn-success" onclick="avviaAudio()" aria-label="Play audio">▶</button>
+                <button id="bottone-pausa" class="btn btn-warning" onclick="fermaAudio()" aria-label="Pause audio">⏸</button>
+                <button id="bottone-servizio-inattivo" class="btn btn-danger" style="display:none;" aria-label="Service unavailable">Servizio Inattivo</button>
+            </div>
+        </div>
+        <i id="bandiera-it" class="lingua flag-icon flag-icon-it" onclick="cambiaLingua('ro')" aria-label="Romanian language">🇷🇴</i>
+        <i id="bandiera-ro" class="lingua flag-icon flag-icon-ro" onclick="cambiaLingua('it')" aria-label="Italian language">🇮🇹</i>
+    </div>
 
-<div class="text-center" style="padding-top: 3vh">
-  <h1>Ascultă aici Cuvântul lui Dumnezeu</h1>
-  <h3>Biserica Penticostală Maranatha Roma</h3>
-  <h3>Program:</h3>
-  <h3>LUNI ȘI MIERCURI: 19:00-21.00</h3>
-  <h3>DUMINICĂ: 10:00 - 13:00</h3>
-</div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        const audioUrl = "prova.mp3"; 
+        let avviaAudioAutomaticoInterval = 15000; 
 
-<div class="centra-contenuto">
-  <video hidden id="myVideo" name="mioVideo" src="https://stream.liveworship.it:8443/?type=https" type="audio/mp3"></video>
-  <div class="btn-group btn-group-lg">
-    <button type="button" name="play" class="btn btn-primary" style="visibility: hidden;" disabled>ASCULTĂ ▶</button>
-    <button type="button" name="pause" class="btn btn-warning" style="visibility: hidden;" disabled>ÎNTRERUPE ⏸</button>
-    <button type="button" name="noSignal" class="btn btn-danger" style="visibility: visible;">SERVICIU INACTIV</button>
-  </div>
-</div>
+        const orari = {
+            lunedi: "19:00 - 21:00",
+            mercoledi: "19:00 - 21:00",
+            domenica: "10:00 - 13:00"
+        };
 
-<script src="js/script.js"></script>
+        const traduzioni = {
+            it: {
+                titolo: "Ascolta qui la Parola di Dio",
+                sottotitolo: "Chiesa Pentecostale Maranatha Roma",
+                bottoneAscolta: "ASCOLTA ▶",
+                bottonePausa: "PAUSA ⏸",
+                programma: "Programma",
+                giorni: {
+                    lunedi: "Lunedì " + orari.lunedi,
+                    mercoledi: "Mercoledì " + orari.mercoleddi,
+                    domenica: "Domenica " + orari.domenica
+                },
+                servizioInattivo: "Servizio Inattivo",
+                ariaBottoneAscolta: "Riproduci audio",
+                ariaBottonePausa: "Pausa audio",
+                ariaBottoneServizio: "Servizio non disponibile",
+                ariaLinguaIt: "Lingua italiana",
+                ariaLinguaRo: "Lingua rumena"
+            },
+            ro: {
+                titolo: "Ascultă aici Cuvântul lui Dumnezeu",
+                sottotitolo: "Biserica Penticostală Maranatha Roma",
+                bottoneAscolta: "ASCULTĂ ▶",
+                bottonePausa: "ÎNTRERUPE ⏸",
+                programma: "Program",
+                giorni: {
+                    lunedi: "Luni " + orari.lunedi,
+                    mercoledi: "Miercuri " + orari.mercoleddi,
+                    domenica: "Duminica " + orari.domenica
+                },
+                servizioInattivo: "Serviciu Inactiv",
+                ariaBottoneAscolta: "Reda audio",
+                ariaBottonePausa: "Pauză audio",
+                ariaBottoneServizio: "Serviciu indisponibil",
+                ariaLinguaIt: "Limba italiană",
+                ariaLinguaRo: "Limba română"
+            }
+        };
+
+        const impostaCookie = (nome, valore) => {
+            document.cookie = `${nome}=${valore}; path=/;`;
+        };
+
+        const leggiCookie = (nome) => {
+            const cookies = document.cookie.split("; ");
+            for (let cookie of cookies) {
+                const [chiave, valore] = cookie.split("=");
+                if (chiave === nome) return valore;
+            }
+            return null;
+        };
+
+        const cambiaLingua = (lingua) => {
+            $('#titolo').text(traduzioni[lingua].titolo);
+            $('#sottotitolo').text(traduzioni[lingua].sottotitolo);
+            $('#bottone-ascolta').text(traduzioni[lingua].bottoneAscolta);
+            $('#bottone-pausa').text(traduzioni[lingua].bottonePausa);
+            $('#programa').text(traduzioni[lingua].programma);
+            $('#lunedi').text(traduzioni[lingua].giorni.lunedi);
+            $('#mercoledi').text(traduzioni[lingua].giorni.mercoleddi);
+            $('#domenica').text(traduzioni[lingua].giorni.domenica);
+            $('#bottone-servizio-inattivo').text(traduzioni[lingua].servizioInattivo);
+            impostaCookie("lingua", lingua);
+
+            // Gestione visibilità delle bandiere
+            $('#bandiera-it').css('display', lingua === 'it' ? 'inline-block' : 'none');
+            $('#bandiera-ro').css('display', lingua === 'ro' ? 'inline-block' : 'none');
+
+            // Imposta aria-label
+            $('#bottone-ascolta').attr("aria-label", traduzioni[lingua].ariaBottoneAscolta);
+            $('#bottone-pausa').attr("aria-label", traduzioni[lingua].ariaBottonePausa);
+            $('#bottone-servizio-inattivo').attr("aria-label", traduzioni[lingua].ariaBottoneServizio);
+            $('#bandiera-it').attr("aria-label", traduzioni[lingua].ariaLinguaIt);
+            $('#bandiera-ro').attr("aria-label", traduzioni[lingua].ariaLinguaRo);
+
+            document.title = $('#titolo').text();
+        };
+
+        const gestisciBottoneAudio = (ascoltaVisibile, pausaVisibile) => {
+            $('#bottone-ascolta').prop("disabled", !ascoltaVisibile).toggle(ascoltaVisibile);
+            $('#bottone-pausa').prop("disabled", !pausaVisibile).toggle(pausaVisibile);
+        };
+
+        const avviaAudio = () => {
+            const elementoAudio = document.getElementById("audio");
+            elementoAudio.play();
+            gestisciBottoneAudio(false, true);
+        };
+
+        const fermaAudio = () => {
+            const elementoAudio = document.getElementById("audio");
+            elementoAudio.pause();
+            gestisciBottoneAudio(true, false);
+        };
+
+        const verificaAudio = () => {
+            fetch(audioUrl, { method: "HEAD" })
+                .then(response => {
+                    if (response.ok) {
+                        $('#bottone-ascolta').show();
+                        $('#bottone-servizio-inattivo').hide();
+                        gestisciBottoneAudio(document.getElementById("audio").paused, !document.getElementById("audio").paused);
+                    } else {
+                        $('#bottone-servizio-inattivo').show();
+                        $('#bottone-ascolta, #bottone-pausa').hide();
+                    }
+                })
+                .catch(() => {
+                    $('#bottone-servizio-inattivo').show();
+                    $('#bottone-ascolta, #bottone-pausa').hide();
+                });
+        };
+
+        setInterval(() => {
+            const elementoAudio = document.getElementById("audio");
+            if (elementoAudio.paused) {
+                verificaAudio();
+            }
+        }, avviaAudioAutomaticoInterval);
+
+        $(document).ready(function () {
+            $('#audio').attr('src', audioUrl);
+
+            let linguaSalvata = leggiCookie("lingua") || "ro";
+            cambiaLingua(linguaSalvata);
+            verificaAudio();
+        });
+    </script>
 </body>
 </html>
-
